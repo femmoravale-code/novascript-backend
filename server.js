@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 mongoose.connect(process.env.MONGODB_URI, {
-  serverSelectionTimeoutMS: 30000,
+  serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
   family: 4
 })
@@ -203,56 +203,45 @@ app.get('/api/progress/:userId', async (req, res) => {
 
 // ============ READING LIST ROUTES ============
 
-// Add story to reading list
 app.post('/api/reading-list', async (req, res) => {
   try {
     const { userId, storyId } = req.body;
-    
-    // Check if already in list
     const existing = await ReadingList.findOne({ userId, storyId });
     if (existing) {
       return res.status(400).json({ error: 'Story already in reading list' });
     }
-    
     const readingItem = new ReadingList({ userId, storyId });
     await readingItem.save();
-    
     res.status(201).json({ success: true, message: 'Added to reading list' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Remove story from reading list
 app.delete('/api/reading-list', async (req, res) => {
   try {
     const { userId, storyId } = req.body;
     const result = await ReadingList.findOneAndDelete({ userId, storyId });
-    
     if (!result) {
       return res.status(404).json({ error: 'Story not in reading list' });
     }
-    
     res.json({ success: true, message: 'Removed from reading list' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get user's reading list
 app.get('/api/reading-list/:userId', async (req, res) => {
   try {
     const readingList = await ReadingList.find({ userId: req.params.userId })
       .populate('storyId')
       .sort({ addedAt: -1 });
-    
     res.json(readingList);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Check if story is in user's reading list
 app.get('/api/reading-list/check/:userId/:storyId', async (req, res) => {
   try {
     const { userId, storyId } = req.params;
